@@ -1,0 +1,321 @@
+#  Version 7.5
+#      The sequence below can be used for tokanizing the controller initialization
+#
+# DCD command:
+# CMD_WRITE_DATA: memory set ADDR BITWIDTH VALUE                 : *ADDR = VALUE
+# CMD_SET_BIT:    memory setbit ADDR BITWIDTH VALUE              : *ADDR = *ADDR | VALUE
+# CMD_CLR_BIT:    memory clrbit ADDR BITWIDTH VALUE              : *ADDR = *ADDR &~ VALUE
+# CMD_CHECK_BIT_SET:  memory chkbit1 ADDR BITWIDTH VALUE         : while((*ADDR & VALUE) != VALUE){}
+# CMD_CHECK_BIT_CLR:  memory chkbit0 ADDR BITWIDTH VALUE         : while((*ADDR & VALUE) != 0){}
+#######################################################################################################
+
+sysparam set	fw_version	4	#PHY firmware version 2022.01
+
+
+################step 0: configure debug uart port. Assumes use of UART IO Pads.   #####
+##### If using non-UART pads (i.e. using other pads to mux out the UART signals), #####
+##### then it is up to the user to overwrite the following IO register settings   #####
+memory set	0x443C0244	32	0x00000000	#SW_MUX_CTL_PAD_UART3_RXD
+memory set	0x443C0248	32	0x00000000	#SW_MUX_CTL_PAD_UART3_TXD
+memory set	0x443C04AC	32	0x00000049	#SW_PAD_CTL_PAD_UART3_RXD
+memory set	0x443C04B0	32	0x00000049	#SW_PAD_CTL_PAD_UART3_TXD
+sysparam set	debug_uart	1	#UART index from 0 ('0' = UART1, '1' = UART2, '2' = UART3, '3' = UART4)
+
+################step 1: DDRC configuration MC1################
+memory set	0x4e300110	32	0x44100001	#DDR_SDRAM_CFG
+memory set	0x4e300000	32	0x008000BF	#CS0_BNDS
+memory set	0x4e300008	32	0x00C000FF	#CS1_BNDS
+memory set	0x4e300080	32	0x80000412	#CS0_CONFIG
+memory set	0x4e300084	32	0x80000412	#CS1_CONFIG
+memory set	0x4e300114	32	0x00001002	#DDR_SDRAM_CFG_2
+memory set	0x4e300260	32	0x00000080	#DDR_SDRAM_CFG_3
+
+
+
+memory set	0x4e300F04	32	0x00000080	#Reserved register for ERR051301
+memory set	0x4E300800	32	0x43B30002	#TX_CFG_1
+memory set	0x4E300804	32	0x1f1f1f1f	#TX_CFG_2
+memory set	0x4E301000	32	0x00000000	#ERR_EN
+
+# DDR ECC regions
+memory set	0x4E301240	32	0x00000000	#ECC Region 0
+memory set	0x4E301244	32	0x00000000	#ECC Region 1
+memory set	0x4E301248	32	0x00000000	#ECC Region 2
+memory set	0x4E30124C	32	0x00000000	#ECC Region 3
+memory set	0x4E301250	32	0x00000000	#ECC Region 4
+memory set	0x4E301254	32	0x00000000	#ECC Region 5
+memory set	0x4E301258	32	0x00000000	#ECC Region 6
+memory set	0x4E30125C	32	0x00000000	#ECC Region 7
+
+# DDR PHY DQ lane to memory mapping
+memory set	0x4e1C0280	32	0x00000004	#DDR_PHY_Dq0LnSel_0
+memory set	0x4e1C0284	32	0x00000005	#DDR_PHY_Dq1LnSel_0
+memory set	0x4e1C0288	32	0x00000006	#DDR_PHY_Dq2LnSel_0
+memory set	0x4e1C028C	32	0x00000007	#DDR_PHY_Dq3LnSel_0
+memory set	0x4e1C0290	32	0x00000000	#DDR_PHY_Dq4LnSel_0
+memory set	0x4e1C0294	32	0x00000001	#DDR_PHY_Dq5LnSel_0
+memory set	0x4e1C0298	32	0x00000002	#DDR_PHY_Dq6LnSel_0
+memory set	0x4e1C029C	32	0x00000003	#DDR_PHY_Dq7LnSel_0
+memory set	0x4e1C4280	32	0x00000003	#DDR_PHY_Dq0LnSel_1
+memory set	0x4e1C4284	32	0x00000002	#DDR_PHY_Dq1LnSel_1
+memory set	0x4e1C4288	32	0x00000000	#DDR_PHY_Dq2LnSel_1
+memory set	0x4e1C428C	32	0x00000001	#DDR_PHY_Dq3LnSel_1
+memory set	0x4e1C4290	32	0x00000007	#DDR_PHY_Dq4LnSel_1
+memory set	0x4e1C4294	32	0x00000006	#DDR_PHY_Dq5LnSel_1
+memory set	0x4e1C4298	32	0x00000004	#DDR_PHY_Dq6LnSel_1
+memory set	0x4e1C429C	32	0x00000005	#DDR_PHY_Dq7LnSel_1
+
+
+
+
+#########################
+# DDR parameter settings
+#########################
+
+ddrparam set	dram_type	2	# value 2 is the same for both LPDDR4 and LPDDR4x
+
+ddrparam set	num_pstat	1	#up to support 4 frequencies (Hardware Fast Frequency Change)
+
+ddrparam set	train_2d	1	#0=1D training only, 1=1D&2D training
+
+ddrparam set	data_width	16
+
+ddrparam set	PhyVref	0x15
+
+ddrparam set	csPresent	0x3	#Indicates presence of DRAM at each chip select for PHY.
+
+#### Frequency Setpoint 0 ###################
+
+ddrparam set	frequency0	1866.5	# MHz
+ddrparam set	pllbypass0	0	# set for >333MHz
+freq0 set	0x44481360	32	0x009B0004	#ANATOP_DRAM_CTRL2
+freq0 set	0x44481340	32	0x00000004	#ANATOP_DRAM_NUMERATOR
+freq0 set	0x44481350	32	0x00000002	#ANATOP_DRAM_DENOMINATOR
+freq0 set	0x44481300	32	0x00000003	#ANATOP_DRAM_CTRL1
+freq0 chkbit1	0x444813F0	32	0x00000001	#ANATOP_DRAM_CTRL3: check pll_lock=1?
+#freq0 set	0x44452600	32	None In the List	#DRAM ALT CLK(index 76) 100M PFD1(800M)/2 which equal to MTS
+freq0 set	0x44452680	32	0x202	#DRAM APB CLK(index 77) 100M PFD1_DIV2(400M)/20
+freq0 set	0x44454840	32	0x0	#DRAM PLL CLK SELECT
+
+freq0 timing	0x4e300100	32	0x24A0321B	#TIMING_CFG_3
+freq0 timing	0x4e300104	32	0xF8EE001B	#TIMING_CFG_0
+freq0 timing	0x4e300108	32	0x2F2E3233	#TIMING_CFG_1
+freq0 timing	0x4e30010C	32	0x0005C18B	#TIMING_CFG_2
+
+freq0 timing	0x4e300124	32	0x1C790000	#DDR_SDRAM_INTERVAL
+freq0 timing	0x4e300160	32	0x00009102	#TIMING_CFG_4
+freq0 timing	0x4e30016C	32	0x35F00000	#TIMING_CFG_7
+freq0 timing	0x4e300170	32	0x8B0B0608	#DDR_ZQ_CNTL
+freq0 timing	0x4e300250	32	0x00000028	#TIMING_CFG_8
+freq0 timing	0x4e300254	32	0x00FE00FE	#TIMING_CFG_9
+freq0 timing	0x4e300258	32	0x00000008	#TIMING_CFG_10
+freq0 timing	0x4e30025C	32	0x00000400	#TIMING_CFG_11
+
+freq0 timing	0x4e300300	32	0x224F2213	#TIMING_CFG_12
+freq0 timing	0x4e300304	32	0x00FE2213	#TIMING_CFG_13
+freq0 timing	0x4e300308	32	0x0A380E3D	#TIMING_CFG_14
+
+#### Frequency Setpoint 1 ###################
+
+#ddrparam set	frequency1	933.0	# MHz
+#ddrparam set	pllbypass1	0	# set for >333MHz
+#freq1 set	0x44481360	32	0x009B0008	#ANATOP_DRAM_CTRL2
+#freq1 set	0x44481340	32	0x00000004	#ANATOP_DRAM_NUMERATOR
+#freq1 set	0x44481350	32	0x00000002	#ANATOP_DRAM_DENOMINATOR
+#freq1 set	0x44481300	32	0x00000003	#ANATOP_DRAM_CTRL1
+freq1 chkbit1	0x444813F0	32	0x00000001	#ANATOP_DRAM_CTRL3: check pll_lock=1?
+#freq1 set	0x44452600	32	None In the List	#DRAM ALT CLK(index 76) 100M PFD1(800M)/2 which equal to MTS
+#freq1 set	0x44452680	32	0x202	#DRAM APB CLK(index 77) 100M PFD1_DIV2(400M)/20
+#freq1 set	0x44454840	32	0x0	#DRAM PLL CLK SELECT
+
+#freq1 timing	0x4e300100	32	0x124F2100	#TIMING_CFG_3
+#freq1 timing	0x4e300104	32	0xF877000E	#TIMING_CFG_0
+#freq1 timing	0x4e300108	32	0x1816E4AA	#TIMING_CFG_1
+#freq1 timing	0x4e30010C	32	0x005101E6	#TIMING_CFG_2
+
+#freq1 timing	0x4e300124	32	0x0E3C0000	#DDR_SDRAM_INTERVAL
+#freq1 timing	0x4e300160	32	0x00009101	#TIMING_CFG_4
+#freq1 timing	0x4e30016C	32	0x30900000	#TIMING_CFG_7
+#freq1 timing	0x4e300170	32	0x8A0A0508	#DDR_ZQ_CNTL
+#freq1 timing	0x4e300250	32	0x00000014	#TIMING_CFG_8
+#freq1 timing	0x4e300254	32	0x007B007B	#TIMING_CFG_9
+freq1 timing	0x4e300258	32	0x00000008	#TIMING_CFG_10
+#freq1 timing	0x4e30025C	32	0x00000400	#TIMING_CFG_11
+
+#### Frequency Setpoint 2 ###################
+
+#ddrparam set	frequency2	312.5	# MHz
+#ddrparam set	pllbypass2	1	# set for >333MHz
+#freq2 set	0x44481360	32	0	#ANATOP_DRAM_CTRL2
+#freq2 set	0x44481340	32	0	#ANATOP_DRAM_NUMERATOR
+#freq2 set	0x44481350	32	0	#ANATOP_DRAM_DENOMINATOR
+#freq2 set	0x44481300	32	0x00000003	#ANATOP_DRAM_CTRL1
+#freq2 chkbit1	0x444813F0	32	0x00000001	#ANATOP_DRAM_CTRL3: check pll_lock=1?
+#freq2 set	0x44452600	32	0x300	#DRAM ALT CLK(index 76) 100M PFD1(800M)/2 which equal to MTS
+#freq2 set	0x44452680	32	0x213	#DRAM APB CLK(index 77) 100M PFD1_DIV2(400M)/20
+#freq2 set	0x44454840	32	0x1	#DRAM PLL CLK SELECT
+
+#freq2 timing	0x4e300100	32	0x00051000	#TIMING_CFG_3
+#freq2 timing	0x4e300104	32	0xF855000A	#TIMING_CFG_0
+#freq2 timing	0x4e300108	32	0x6E620A48	#TIMING_CFG_1
+#freq2 timing	0x4e30010C	32	0x0031010D	#TIMING_CFG_2
+
+#freq2 timing	0x4e300124	32	0x04C50000	#DDR_SDRAM_INTERVAL
+#freq2 timing	0x4e300160	32	0x00009100	#TIMING_CFG_4
+#freq2 timing	0x4e30016C	32	0x30000000	#TIMING_CFG_7
+#freq2 timing	0x4e300170	32	0x89090408	#DDR_ZQ_CNTL
+#freq2 timing	0x4e300250	32	0x00000007	#TIMING_CFG_8
+#freq2 timing	0x4e300254	32	0x00240024	#TIMING_CFG_9
+#freq2 timing	0x4e300258	32	0x00000008	#TIMING_CFG_10
+#freq2 timing	0x4e30025C	32	0x00000400	#TIMING_CFG_11
+
+
+# The following is to configure the recommended training, it is strongly recommended not to change this
+ddrparam set	TrainCtrl0	0x131f	#TrainCtrl[0] = Run DevInit - Device/phy initialization. Should always be set.
+#TrainCtrl[1] = Run WrLvl - Write leveling
+#TrainCtrl[2] = Run RxEn - Read gate training
+#TrainCtrl[3] = Run RdDQS1D - 1d read dqs training
+#TrainCtrl[4] = Run WrDQ1D - 1d write dq training
+#TrainCtrl[5] = RFU, must be zero
+#TrainCtrl[6] = RFU, must be zero
+#TrainCtrl[7] = RFU, must be zero
+#TrainCtrl[8] = Run RdDeskew - Per lane read dq deskew training
+#TrainCtrl[9] = Run MxRdLat - Max read latency training
+#TrainCtrl[11-10] = RFU, must be zero
+#TrainCtrl[12]      = Run LPCA - CA Training
+#TrainCtrl[15-13] = RFU, must be zero
+
+# The following is for internal factory use, it is strongly recommended not to change this
+ddrparam set	TrainInfo	0xC8	#0x05 = Detailed debug (e.g. eys delays)
+#0x0A = Coarse debug info (e.g. rank information)
+#0xC8 = Stage completion
+#0xC9 = Assertion messages
+#0xFF = Firmware complete
+#others = reserved
+
+ddrparam set	MR1	0xE4
+ddrparam set	MR2	0x36
+ddrparam set	MR3	0x32
+ddrparam set	MR4	0x00
+ddrparam set	MR11	0x46
+ddrparam set	MR12	0x11
+ddrparam set	MR13	0x08
+ddrparam set	MR14	0x11
+ddrparam set	MR16	0x00
+ddrparam set	MR17	0x00
+ddrparam set	MR22	0x04
+ddrparam set	MR24	0x00
+
+#ddrparam set	MR1-1	0xB4
+#ddrparam set	MR2-1	0x1B
+#ddrparam set	MR3-1	0x32
+#ddrparam set	MR4-1	0x00
+#ddrparam set	MR11-1	0x46
+#ddrparam set	MR12-1	0x11
+#ddrparam set	MR13-1	0x08
+#ddrparam set	MR14-1	0x11
+#ddrparam set	MR16-1	0x00
+#ddrparam set	MR17-1	0x00
+#ddrparam set	MR22-1	0x04
+#ddrparam set	MR24-1	0x00
+
+#ddrparam set	MR1-2	0x94
+#ddrparam set	MR2-2	0x9
+#ddrparam set	MR3-2	0x32
+#ddrparam set	MR4-2	0x00
+#ddrparam set	MR11-2	0x46
+#ddrparam set	MR12-2	0x11
+#ddrparam set	MR13-2	0x00
+#ddrparam set	MR14-2	0x11
+#ddrparam set	MR16-2	0x00
+#ddrparam set	MR17-2	0x00
+#ddrparam set	MR22-2	0x04
+#ddrparam set	MR24-2	0x00
+
+ddrparam set	DfiCsPolarity_fix	0x0
+
+
+ddrparam set	ATxImpedance	40
+ddrparam set	ODTImpedance	60
+ddrparam set	TxImpedance	40
+
+ddrparam set	lp4x_mode	1
+ddrparam set	read_dbi	0
+ddrparam set	extCalRes	0x01
+ddrparam set	WDQSExt	0x01
+
+ddrparam set	SlewRiseDQ	0x0f
+ddrparam set	SlewFallDQ	0x0f
+ddrparam set	SlewFallAC	0x0f
+ddrparam set	SlewRiseAC	0x0f
+
+ddrparam set	CaliInterval	0x09
+ddrparam set	CaliOnce	0x00
+
+ddrparam set	RX2D_trainOpt	0x00
+ddrparam set	TX2D_trainOpt	0x00
+ddrparam set	Share_2dVref	0x01
+ddrparam set	Delay_weight2d	0x80
+ddrparam set	Volt_weight2d	0x20
+
+ddrparam set	write_dbi	0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
